@@ -1,6 +1,6 @@
 from pymongo import MongoClient
-from pydantic import BaseModel, Field
-from bson import ObjectId
+from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime
 
 mongo_client=MongoClient("mongodb+srv://vamshikrishnakatkam:otQOlmIPnpwY4YaT@cluster0.0clej.mongodb.net/")
@@ -22,7 +22,13 @@ class UserInDB(User):
 class UserLogin(BaseModel):
     email: str
     password: str
+    
 class RefreshToken(BaseModel):
     user_id: str
     token: str
     expires_at: datetime
+
+class UserUpdateModel(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None 

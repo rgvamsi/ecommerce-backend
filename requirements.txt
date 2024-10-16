@@ -2,3 +2,5 @@ fastapi
 uvicorn
 pymongo
 pydantic[dotenv]
+PyJWT
+python-jose
