@@ -1,11 +1,13 @@
-import jwt
+from jose import JWTError, jwt
 import os
-# from typing import List
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, status, Depends
-from app.models import users_collection, User, UserLogin, refresh_tokens_collection,UserUpdateModel
+from fastapi import APIRouter, HTTPException, status, Depends,Query
+from app.models import users_collection, User, UserLogin, refresh_tokens_collection,UserUpdateModel,PasswordReset, PasswordResetRequest
 from app.auth import get_password_hash,create_access_token, verify_password, get_current_user,create_refresh_token
 from datetime import datetime, timedelta, timezone
+from app.utils.helper import user_helper
+from app.services.email_service import send_reset_email
+
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 
@@ -34,7 +36,8 @@ def signup(user: User):
         raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")
 
 @router.post("/users/login")
-def login(user_login: UserLogin):  # Use the new UserLogin model
+def login(user_login: UserLogin):
+    print("user_login",user_login)
     try:
         db_user = users_collection.find_one({"email": user_login.email})
         if not db_user:
@@ -47,8 +50,9 @@ def login(user_login: UserLogin):  # Use the new UserLogin model
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect password"
             )
-        access_token = create_access_token(data={"sub": user_login.email})
-        refresh_token = create_refresh_token(data={"sub": user_login.email})
+        role = db_user.get("role", "user")
+        access_token = create_access_token(data={"sub": user_login.email,"role": role})
+        refresh_token = create_refresh_token(data={"sub": user_login.email,"role": role})
 
         # Store the refresh token in the database
         refresh_tokens_collection.insert_one({
@@ -127,19 +131,22 @@ def get_user_by_id(user_id: str):
         raise HTTPException(status_code=404, detail="User not found.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting user: {str(e)}")
-# @router.get("/users-list", response_model=List[User], status_code=status.HTTP_200_OK)
-# async def get_all_users():
-#     users = []
-#     try:
-#         for user in users_collection.find({}):  # Use async for non-blocking I/O
-#             user["id"] = str(user["_id"])  # Convert ObjectId to string
-#             del user["_id"]  # Remove _id to fit the UserInDB model
-#             users.append(User(**user))  # Use the Pydantic model for response
-#         if not users:
-#             raise HTTPException(status_code=404, detail="No users found.")
-#         return users
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error retrieving users: {str(e)}")
+
+@router.get("/users", status_code=status.HTTP_200_OK)
+def get_all_users(current_user: dict = Depends(get_current_user)):
+    try:
+        if current_user["role"] != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: Admins only."
+            )
+
+        users = []
+        for user in users_collection.find({}):
+            users.append(user_helper(user))
+        return users
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting users list: {str(e)}")
 
 @router.put("/users/{user_id}", status_code=status.HTTP_202_ACCEPTED)
 def update_user(user_id: str, updated_data: UserUpdateModel):
@@ -168,7 +175,6 @@ def update_user(user_id: str, updated_data: UserUpdateModel):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating user: {str(e)}")
     
-
 @router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
 def delete_user(user_id: str):
     try:
@@ -180,3 +186,60 @@ def delete_user(user_id: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting user: {str(e)}")
+    
+@router.post("/users/request-password-reset", status_code=status.HTTP_200_OK)
+def request_password_reset(request: PasswordResetRequest):
+    try:
+        user = users_collection.find_one({"email": request.email})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Create a reset token (valid for 15 minutes)
+        reset_token = jwt.encode(
+            {"sub": str(user["_id"]), "exp": datetime.utcnow() + timedelta(minutes=15)},
+            SECRET_KEY,
+            algorithm="HS256",
+        )
+
+        # Send the reset email
+        send_reset_email(request.email, reset_token)
+        return {"message": "Password reset link sent to your email."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error request for reset password: {str(e)}")
+    
+@router.post("/users/reset-password/{token}", status_code=status.HTTP_200_OK)
+def reset_password(
+    token: str, 
+    request: PasswordReset
+):
+    try:
+        try:
+            # Decode the JWT token
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            user_id = payload.get("sub")
+
+            if user_id is None:
+                raise HTTPException(status_code=401, detail="Invalid token.")
+
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Token has expired or is invalid.")
+
+        # Fetch user from database
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Verify old password
+        if not verify_password(request.old_password, user["password"]):
+            raise HTTPException(status_code=401, detail="Incorrect old password.")
+
+        # Hash new password and update the database
+        new_hashed_password = get_password_hash(request.new_password)
+        users_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"password": new_hashed_password}},
+        )
+
+        return {"message": "Password has been reset successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reset password: {str(e)}")
