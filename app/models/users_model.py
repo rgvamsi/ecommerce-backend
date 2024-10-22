@@ -3,16 +3,11 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 from typing import Optional
 from datetime import datetime
 
-mongo_client=MongoClient("mongodb+srv://vamshikrishnakatkam:otQOlmIPnpwY4YaT@cluster0.0clej.mongodb.net/")
-db=mongo_client["ecommerce"]
-users_collection = db["users"]
-refresh_tokens_collection = db["refresh_tokens"]
-
 
 class User(BaseModel):
     username: str = Field(
         ..., min_length=3, max_length=20, 
-        description="Username must be between 3 and 50 characters."
+        description="Username must be between 3 and 20 characters."
     )
     email: EmailStr = Field(..., description="Valid email address required.")
     password: str = Field(
@@ -21,11 +16,11 @@ class User(BaseModel):
     )
     firstname:str = Field(
         ..., min_length=3, max_length=20, 
-        description="Username must be between 3 and 50 characters."
+        description="firstname must be between 3 and 50 characters."
     )
     lastname:str = Field(
         ..., min_length=3, max_length=20, 
-        description="Username must be between 3 and 50 characters."
+        description="lastname must be between 3 and 50 characters."
     )
     role: Optional[str] = Field(default="user", description="User role, default is 'user'.")
 
@@ -62,8 +57,8 @@ class UserUpdateModel(BaseModel):
         description="Lastname must be between 3 and 20 characters."
     )
 
-class PasswordResetRequest(BaseModel):
-    email: EmailStr = Field(..., description="Valid email address required.")
+# class PasswordResetRequest(BaseModel):
+#     email: EmailStr = Field(..., description="Valid email address required.")
 
 class PasswordReset(BaseModel):
     old_password: str = Field(

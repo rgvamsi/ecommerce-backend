@@ -1,12 +1,13 @@
 from jose import JWTError, jwt
 import os
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, status, Depends,Query
-from app.models import users_collection, User, UserLogin, refresh_tokens_collection,UserUpdateModel,PasswordReset, PasswordResetRequest
-from app.auth import get_password_hash,create_access_token, verify_password, get_current_user,create_refresh_token
+from fastapi import APIRouter, HTTPException, status, Depends
+from app.models.users_model import User, UserLogin,UserUpdateModel,PasswordReset
+from app.middleware.auth import get_password_hash,create_access_token, verify_password, get_current_user,create_refresh_token
 from datetime import datetime, timedelta, timezone
 from app.utils.helper import user_helper
 from app.services.email_service import send_reset_email
+from app.services.database import users_collection, refresh_tokens_collection
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -37,7 +38,6 @@ def signup(user: User):
 
 @router.post("/users/login")
 def login(user_login: UserLogin):
-    print("user_login",user_login)
     try:
         db_user = users_collection.find_one({"email": user_login.email})
         if not db_user:
@@ -188,21 +188,21 @@ def delete_user(user_id: str):
         raise HTTPException(status_code=500, detail=f"Error deleting user: {str(e)}")
     
 @router.post("/users/request-password-reset", status_code=status.HTTP_200_OK)
-def request_password_reset(request: PasswordResetRequest):
+def request_password_reset(current_user: str = Depends(get_current_user)):
     try:
-        user = users_collection.find_one({"email": request.email})
+        user = users_collection.find_one({"email": current_user["email"]})
         if not user:
             raise HTTPException(status_code=404, detail="User not found.")
 
         # Create a reset token (valid for 15 minutes)
         reset_token = jwt.encode(
-            {"sub": str(user["_id"]), "exp": datetime.utcnow() + timedelta(minutes=15)},
+            {"sub": str(user["_id"]), "exp": datetime.now(timezone.utc) + timedelta(minutes=15)},
             SECRET_KEY,
             algorithm="HS256",
         )
 
         # Send the reset email
-        send_reset_email(request.email, reset_token)
+        send_reset_email(current_user["email"], reset_token)
         return {"message": "Password reset link sent to your email."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error request for reset password: {str(e)}")
