@@ -57,15 +57,13 @@ class UserUpdateModel(BaseModel):
         description="Lastname must be between 3 and 20 characters."
     )
 
-# class PasswordResetRequest(BaseModel):
-#     email: EmailStr = Field(..., description="Valid email address required.")
 
 class PasswordReset(BaseModel):
     old_password: str = Field(
-        ..., min_length=6, 
+        ..., min_length=6,
         description="Password must be at least 6 characters long."
     )
     new_password: str = Field(
-        ..., min_length=6, 
+        ..., min_length=6,
         description="Password must be at least 6 characters long."
     )

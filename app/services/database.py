@@ -1,4 +1,3 @@
-# database.py
 from pymongo import MongoClient
 
 # MongoDB connection string
@@ -8,5 +7,5 @@ mongo_client = MongoClient("mongodb+srv://vamshikrishnakatkam:otQOlmIPnpwY4YaT@c
 db = mongo_client["ecommerce"]
 users_collection = db["users"]
 refresh_tokens_collection = db["refresh_tokens"]
-products_collection = db["products"] 
-
+products_collection = db["products"]
+cart_collection=db["cart"]

@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, status, Depends,Query
 from typing import Dict
+from fastapi import APIRouter, HTTPException, status, Depends,Query
 from app.models.products_model import Product,ProductInDB,ProductUpdateModel
 from app.middleware.auth import get_current_user
 from app.controllers.product_manager import ProductManager

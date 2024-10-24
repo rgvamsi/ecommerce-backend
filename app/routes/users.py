@@ -209,7 +209,7 @@ def request_password_reset(current_user: str = Depends(get_current_user)):
     
 @router.post("/users/reset-password/{token}", status_code=status.HTTP_200_OK)
 def reset_password(
-    token: str, 
+    token: str,
     request: PasswordReset
 ):
     try:
