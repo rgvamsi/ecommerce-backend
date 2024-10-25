@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.routes.users import router as users_router
 from app.routes.products import router as product_router
 from app.routes.cart import router as cart_router
+from app.routes.order import router as order_router
 
 app = FastAPI()
 
@@ -9,6 +10,7 @@ app = FastAPI()
 app.include_router(users_router, tags=["Users"])
 app.include_router(product_router, tags=["Products"])
 app.include_router(cart_router, tags=["Cart"])
+app.include_router(order_router, tags=["Orders"])
 
 # Optional root endpoint
 @app.get("/")

@@ -13,7 +13,7 @@ class ProductManager:
             # Check if the the product already exists
             if self.collection.find_one({"image": product.image}):
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, 
+                    status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Product is already existed"
                 )
             product_data = product.dict()

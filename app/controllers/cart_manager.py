@@ -100,9 +100,14 @@ class CartManager:
             )
 
     def view_cart(self,user_email):
-        # Find the user's cart
-        cart = cart_collection.find_one({"user_email": user_email})
-        if not cart:
-            return {"message": "Cart is empty", "items": []}
+        try:
+            # Find the user's cart
+            cart = cart_collection.find_one({"user_email": user_email})
+            if not cart:
+                return {"message": "Cart is empty", "items": []}
 
-        return {"items": cart["items"], "updated_at": cart["updated_at"]}
+            return {"items": cart["items"], "updated_at": cart["updated_at"]}
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            )
