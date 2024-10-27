@@ -3,15 +3,18 @@ from fastapi import HTTPException, status
 from bson import ObjectId
 from app.services.database import products_collection
 from app.utils.helper import product_helper
-from app.models.products_model import Product,ProductInDB
+
+PRODUCT_NOT_FOUND="Product not found"
 class ProductManager:
+    """This  class is responsible for managing products in the database"""
+
     def __init__(self):
         self.collection = products_collection  # Reference to the products collection
 
     def create_product(self, product):
         try:
             # Check if the the product already exists
-            if self.collection.find_one({"image": product.image}):
+            if self.collection.find_one({"product_id": product.product_id}):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Product is already existed"
@@ -23,10 +26,14 @@ class ProductManager:
             product_data["id"] = str(result.inserted_id)
             return product_data
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        
-    def list_products(self, pagination_token=0,limit=20):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e
+
+    def list_products(self, current_user,pagination_token=0,limit=20,):
         try:
+            print("current user", current_user)
             products_cursor = self.collection.find({}).skip(pagination_token).limit(limit)
             products = products_cursor.to_list(length=limit)
             response = {
@@ -35,17 +42,24 @@ class ProductManager:
             }
             return response
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        
-    def get_product(self, product_id: str):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e
+
+    def get_product(self, current_user,product_id: str):
         try:
+            print("current user", current_user)
             product = self.collection.find_one({"_id": ObjectId(product_id)})
             if product:
                 return product_helper(product)
-            raise HTTPException(status_code=404, detail="Product not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PRODUCT_NOT_FOUND)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e
+
     def update_product(self, product_id: str, product_data):
         try:
             update_data = product_data.dict(exclude_unset=True)
@@ -55,16 +69,22 @@ class ProductManager:
                 {"$set": update_data}
             )
             if update_result.modified_count == 0:
-                raise HTTPException(status_code=404, detail="Product not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PRODUCT_NOT_FOUND)
             return  {"detail": "User updated successfully."}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e
+
     def delete_product(self, product_id: str):
         try:
             delete_result = self.collection.delete_one({"_id": ObjectId(product_id)})
             if delete_result.deleted_count == 0:
-                raise HTTPException(status_code=404, detail="Product not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PRODUCT_NOT_FOUND)
             return {"detail": "Product deleted"}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e

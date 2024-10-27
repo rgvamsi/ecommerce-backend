@@ -4,8 +4,11 @@ from app.services.database import order_collection
 
 
 class OrderManager:
+    """This  class is responsible for managing orders in the database"""
+
     def __init__(self) -> None:
         self.collection=order_collection
+
     def place_order(self,order_request,user_email):
         try:
             # Calculate total amount
@@ -38,8 +41,10 @@ class OrderManager:
             }
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-            )
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e
+
     def get_order_history(self,user_email):
         try:
             # Fetch the user's orders from the database
@@ -54,7 +59,7 @@ class OrderManager:
                     "items": order["items"],
                     "total_amount": order["total_amount"],
                     "address": order["address"],
-                    "created_at": order["created_at"].isoformat(),
+                    "created_at": order["created_at"],
                 })
 
             if not order_list:
@@ -66,5 +71,6 @@ class OrderManager:
             return order_list
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-            )
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e

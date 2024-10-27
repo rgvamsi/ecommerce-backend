@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class Product(BaseModel):
+    product_id:str
     name: str = Field(
         ..., min_length=3, max_length=50,
         description="name must be between 3 and 50 characters."

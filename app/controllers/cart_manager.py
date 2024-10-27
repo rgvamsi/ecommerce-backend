@@ -3,8 +3,11 @@ from fastapi import HTTPException, status
 from app.services.database import cart_collection
 
 class CartManager:
+    """This  class is responsible for managing the cart of a user"""
+
     def __init__(self) -> None:
         self.collection=cart_collection
+
     def add_product_to_cart(self,item,user_email):
         try:
             product_id = item.product_id
@@ -44,15 +47,16 @@ class CartManager:
 
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-            )
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e
 
     def remove_from_cart(self,product_id,user_email):
         try:
             # Find the user's cart
             cart = self.collection.find_one({"user_email": user_email})
             if not cart:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cart not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cart Not Found")
 
             # Filter out the product to remove it
             new_items = [item for item in cart["items"] if item["product_id"] != product_id]
@@ -63,8 +67,9 @@ class CartManager:
             return {"message": "Product removed from cart successfully"}
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-            )
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e
 
     def update_cart(self,product,product_id,user_email):
         try:
@@ -72,7 +77,7 @@ class CartManager:
             cart = cart_collection.find_one({"user_email": user_email})
             if not cart:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Cart not found"
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Cart Not Found"
                 )
 
             # Check if the product exists in the cart
@@ -86,7 +91,7 @@ class CartManager:
             if not product_found:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Product not found in cart",
+                    detail="Product Not Found in the Cart",
                 )
 
             # Update the cart in the database
@@ -94,10 +99,12 @@ class CartManager:
             cart_collection.update_one({"_id": cart["_id"]}, {"$set": cart})
 
             return {"message": "Product quantity updated successfully"}
+
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-            )
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e
 
     def view_cart(self,user_email):
         try:
@@ -109,5 +116,6 @@ class CartManager:
             return {"items": cart["items"], "updated_at": cart["updated_at"]}
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-            )
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            ) from e

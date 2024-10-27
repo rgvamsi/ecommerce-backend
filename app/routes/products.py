@@ -4,6 +4,7 @@ from app.models.products_model import Product,ProductInDB,ProductUpdateModel
 from app.middleware.auth import get_current_user
 from app.controllers.product_manager import ProductManager
 
+PERMISSION_ADMIN="Not enough permissions"
 
 router = APIRouter()
 # Create an instance of ProductManager
@@ -17,26 +18,34 @@ def create_product(
     if current_user["role"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            detail=PERMISSION_ADMIN
         )
     return product_manager.create_product(product)
 
-@router.get("/products",response_model=Dict)
-def list_products(pagination_token: int = Query(0),limit: int = 20,current_user: dict = Depends(get_current_user)):
-    return product_manager.list_products(pagination_token=pagination_token,limit=limit)
+@router.get("/products",response_model=Dict,status_code=status.HTTP_200_OK)
+def list_products(
+    pagination_token: int = Query(0),
+    limit: int = 20,
+    current_user: dict = Depends(get_current_user)
+):
+    return product_manager.list_products(current_user,pagination_token=pagination_token,limit=limit)
 
-@router.get("/products/{product_id}", response_model=ProductInDB)
+@router.get("/products/{product_id}", response_model=ProductInDB,status_code=status.HTTP_200_OK)
 def read_product(product_id: str,current_user: dict = Depends(get_current_user)):
-    return product_manager.get_product(product_id)
+    return product_manager.get_product(current_user,product_id)
 
 @router.put("/products/{product_id}")
-def update_product(product_id: str, product_data: ProductUpdateModel, current_user: dict = Depends(get_current_user)):
+def update_product(
+    product_id: str,
+    product_data: ProductUpdateModel,
+    current_user: dict = Depends(get_current_user)
+):
     if current_user['role'] != 'admin':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PERMISSION_ADMIN)
     return product_manager.update_product(product_id, product_data)
 
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_product(product_id: str, current_user: dict = Depends(get_current_user)):
     if current_user['role'] != 'admin':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PERMISSION_ADMIN)
     return product_manager.delete_product(product_id)

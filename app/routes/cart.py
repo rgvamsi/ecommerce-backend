@@ -18,29 +18,43 @@ def add_to_cart(item: CartItem, current_user: dict = Depends(get_current_user)):
         user_email = current_user["email"]
         return cart_manager.add_product_to_cart(item,user_email)
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        ) from e
 
-@router.delete("/cart/{product_id}")
+@router.delete("/cart/{product_id}",status_code=status.HTTP_200_OK)
 def remove_from_cart(product_id: str, user: dict = Depends(get_current_user)):
     try:
         user_email = user["email"]
         return cart_manager.remove_from_cart(product_id,user_email)
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )  from e
 
-@router.put("/cart/{product_id}")
-def update_cart(product:CartUpdateItem,product_id: str,
-    user: dict = Depends(get_current_user)):
+@router.put("/cart/{product_id}",status_code=status.HTTP_202_ACCEPTED)
+def update_cart(
+    product:CartUpdateItem,product_id: str,
+    user: dict = Depends(get_current_user)
+    ):
     try:
         user_email = user["email"]
         return cart_manager.update_cart(product,product_id,user_email)
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-    
-@router.get("/cart")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )   from e
+
+@router.get("/cart",status_code=status.HTTP_200_OK)
 def view_cart(user: dict = Depends(get_current_user)):
     try:
         user_email = user["email"]
         return cart_manager.view_cart(user_email)
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )   from e
